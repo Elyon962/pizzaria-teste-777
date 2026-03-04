@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pizzaria Pro Max 3.0</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0f0f0f;
+  color:white;
+}
+
+header{
+  background:#1c1c1c;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.status{
+  padding:8px 15px;
+  border-radius:20px;
+  font-weight:bold;
+}
+
+.aberto{
+  background:green;
+  box-shadow:0 0 15px lime;
+}
+
+.fechado{
+  background:red;
+  animation:piscar 1s infinite;
+}
+
+@keyframes piscar{
+  0%{opacity:1;}
+  50%{opacity:0.4;}
+  100%{opacity:1;}
+}
+
+.menu{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+  padding:20px;
+}
+
+.card{
+  background:#1e1e1e;
+  padding:15px;
+  border-radius:10px;
+  text-align:center;
+}
+
+.card img{
+  width:100%;
+  border-radius:10px;
+}
+
+button{
+  padding:6px 12px;
+  margin:5px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.add{background:green;color:white;}
+.remove{background:red;color:white;}
+.finalizar{background:orange;width:100%;padding:12px;}
+
+.carrinho{
+  background:#1a1a1a;
+  padding:20px;
+}
+
+input, select{
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  border:none;
+  border-radius:5px;
+}
+
+.admin{
+  background:#111;
+  padding:20px;
+  margin-top:20px;
+  display:none;
+}
+
+.pedido{
+  background:#222;
+  padding:10px;
+  margin:10px 0;
+  border-radius:5px;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h2>Pizzaria Pro Max</h2>
+<div id="statusLoja" class="status"></div>
+</header>
+
+<h2 style="padding-left:20px;">Cardápio</h2>
+
+<div class="menu">
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1594007654729-407eedc4be65">
+<h3>Calabresa</h3>
+<p>R$40</p>
+<button class="remove" onclick="diminuir(1)">-</button>
+<span id="qtd1">0</span>
+<button class="add" onclick="aumentar(1)">+</button>
+</div>
+
+<div class="card">
+<img src="https://images.unsplash.com/photo-1548365328-5b849d9b6c1b">
+<h3>Chocolate</h3>
+<p>R$45</p>
+<button class="remove" onclick="diminuir(2)">-</button>
+<span id="qtd2">0</span>
+<button class="add" onclick="aumentar(2)">+</button>
+</div>
+
+</div>
+
+<div class="carrinho">
+<h2>Finalizar Pedido</h2>
+
+<input type="text" id="nome" placeholder="Nome">
+<input type="text" id="endereco" placeholder="Endereço">
+
+<select id="pagamento">
+<option>Pix</option>
+<option>Cartão</option>
+<option>Dinheiro</option>
+</select>
+
+<h3>Total: R$ <span id="total">0</span></h3>
+
+<button class="finalizar" onclick="salvarPedido()">FINALIZAR</button>
+
+<button onclick="abrirAdmin()">⚙️ Painel Admin</button>
+</div>
+
+<div class="admin" id="adminPanel">
+<h2>Painel Administrativo</h2>
+<div id="listaPedidos"></div>
+<button onclick="limparPedidos()">Limpar Pedidos</button>
+</div>
+
+<script>
+
+let pizzas={
+1:{nome:"Calabresa",preco:40,qtd:0},
+2:{nome:"Chocolate",preco:45,qtd:0}
+};
+
+function aumentar(id){
+  pizzas[id].qtd++;
+  document.getElementById("qtd"+id).innerText=pizzas[id].qtd;
+  calcularTotal();
+}
+
+function diminuir(id){
+  if(pizzas[id].qtd>0){
+    pizzas[id].qtd--;
+    document.getElementById("qtd"+id).innerText=pizzas[id].qtd;
+    calcularTotal();
+  }
+}
+
+function calcularTotal(){
+  let total=0;
+  for(let id in pizzas){
+    total+=pizzas[id].qtd*pizzas[id].preco;
+  }
+  document.getElementById("total").innerText=total;
+}
+
+function salvarPedido(){
+  let pedido={
+    nome:document.getElementById("nome").value,
+    endereco:document.getElementById("endereco").value,
+    pagamento:document.getElementById("pagamento").value,
+    itens:[],
+    total:document.getElementById("total").innerText,
+    status:"Recebido"
+  };
+
+  for(let id in pizzas){
+    if(pizzas[id].qtd>0){
+      pedido.itens.push(pizzas[id].qtd+"x "+pizzas[id].nome);
+    }
+  }
+
+  let pedidos=JSON.parse(localStorage.getItem("pedidos"))||[];
+  pedidos.push(pedido);
+  localStorage.setItem("pedidos",JSON.stringify(pedidos));
+
+  alert("Pedido salvo!");
+  mostrarPedidos();
+}
+
+function abrirAdmin(){
+  document.getElementById("adminPanel").style.display="block";
+  mostrarPedidos();
+}
+
+function mostrarPedidos(){
+  let pedidos=JSON.parse(localStorage.getItem("pedidos"))||[];
+  let lista=document.getElementById("listaPedidos");
+  lista.innerHTML="";
+
+  pedidos.forEach((p,index)=>{
+    lista.innerHTML+=`
+    <div class="pedido">
+      <b>${p.nome}</b><br>
+      ${p.itens.join("<br>")}<br>
+      Total: R$${p.total}<br>
+      Status: ${p.status}<br>
+      <button onclick="mudarStatus(${index})">Mudar Status</button>
+    </div>
+    `;
+  });
+}
+
+function mudarStatus(index){
+  let pedidos=JSON.parse(localStorage.getItem("pedidos"));
+  if(pedidos[index].status=="Recebido"){
+    pedidos[index].status="Em preparo";
+  }else if(pedidos[index].status=="Em preparo"){
+    pedidos[index].status="Saiu para entrega";
+  }else{
+    pedidos[index].status="Recebido";
+  }
+  localStorage.setItem("pedidos",JSON.stringify(pedidos));
+  mostrarPedidos();
+}
+
+function limparPedidos(){
+  localStorage.removeItem("pedidos");
+  mostrarPedidos();
+}
+
+function verificarHorario(){
+  let h=new Date().getHours();
+  let s=document.getElementById("statusLoja");
+  if(h>=18 && h<23){
+    s.innerText="🟢 ABERTO";
+    s.className="status aberto";
+  }else{
+    s.innerText="🔴 FECHADO";
+    s.className="status fechado";
+  }
+}
+verificarHorario();
+
+</script>
+
+</body>
+</html>
